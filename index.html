@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baca &amp; Generate NIK — Panduan Struktur Nomor Induk Kependudukan</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap');
+
+  :root{
+    --ink: #1f2a24;
+    --paper: #eef0e6;
+    --paper-dim: #e2e5d9;
+    --line: #b9c2ab;
+    --stamp: #7a3b2e;
+    --stamp-dim: #a85c47;
+    --ok: #2f5d3a;
+    --ok-bg: #dfe8d9;
+    --err: #7a3b2e;
+    --err-bg: #ecdcd6;
+    --wil: #5c7a4a;
+    --tgl: #a85c47;
+    --urut: #4a5f8a;
+  }
+  *{ box-sizing: border-box; }
+  body{
+    margin:0; background: var(--paper);
+    background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    color: var(--ink); font-family: 'Source Serif 4', Georgia, serif;
+    min-height: 100vh; display:flex; justify-content:center; padding: 32px 16px 64px;
+  }
+  .sheet{
+    width: 100%; max-width: 680px; background: var(--paper-dim);
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 var(--line), 0 12px 24px -18px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  .sheet::before{ content:""; position:absolute; inset: 8px; border: 1px solid var(--line); pointer-events:none; }
+  header{ padding: 28px 32px 18px; border-bottom: 1px dashed var(--line); position: relative; }
+  .eyebrow{ font-family:'Space Mono', monospace; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--stamp-dim); margin: 0 0 6px; }
+  h1{ font-size: 25px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub{ font-size: 14px; color: #45503f; margin: 0; line-height: 1.5; }
+
+  nav.tabs{ display:flex; border-bottom: 1px dashed var(--line); background: var(--paper); }
+  nav.tabs button{
+    flex:1; font-family:'Space Mono', monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    background: none; border: none; padding: 14px 8px; cursor: pointer; color: #6b7561;
+    border-bottom: 2px solid transparent; transition: all 0.15s ease;
+  }
+  nav.tabs button.active{ color: var(--ink); border-bottom-color: var(--stamp-dim); background: var(--paper-dim); }
+  nav.tabs button:hover:not(.active){ color: var(--ink); }
+
+  main{ padding: 24px 32px 8px; }
+  .pane{ display:none; }
+  .pane.active{ display:block; }
+
+  label{ display:block; font-family:'Space Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #45503f; margin-bottom: 8px; }
+  .input-row{ display:flex; gap: 10px; }
+  input[type="text"], input[type="date"]{
+    flex:1; font-family:'Space Mono', monospace; font-size: 17px; letter-spacing: 0.06em;
+    padding: 12px 14px; background: #fff; border: 1px solid var(--line); color: var(--ink); outline: none; width: 100%;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, select:focus{ border-color: var(--stamp-dim); }
+  select{
+    font-family:'Space Mono', monospace; font-size: 13px; padding: 11px 12px;
+    background: #fff; border: 1px solid var(--line); color: var(--ink); width:100%;
+  }
+  select:disabled{ color: #a8b09c; background: #f2f3ee; }
+
+  button.action{
+    font-family:'Space Mono', monospace; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--ink); color: var(--paper-dim); border: none; padding: 0 20px; cursor: pointer; transition: background 0.15s ease;
+  }
+  button.action:hover{ background: var(--stamp); }
+  button.action:disabled{ background: #a8b09c; cursor: not-allowed; }
+  button.action:active:not(:disabled){ transform: translateY(1px); }
+
+  .digit-track{ display:flex; gap: 3px; margin-top: 10px; font-family:'Space Mono', monospace; font-size: 10px; }
+  .digit-track span{ flex:1; text-align:center; padding: 3px 0; border-bottom: 2px solid var(--line); color: #6b7561; }
+  .digit-track span.g-wil{ border-color: var(--wil); }
+  .digit-track span.g-tgl{ border-color: var(--tgl); }
+  .digit-track span.g-urut{ border-color: var(--urut); }
+
+  .result{ margin-top: 26px; display:none; }
+  .result.show{ display:block; }
+  .verdict{ font-family:'Space Mono', monospace; font-size: 13px; letter-spacing: 0.05em; padding: 10px 14px; margin-bottom: 18px; border: 1px solid; }
+  .verdict.ok{ background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  .verdict.err{ background: var(--err-bg); border-color: var(--err); color: var(--err); }
+  .verdict.loading{ background: #eef0e6; border-color: var(--line); color: #6b7561; }
+
+  .field-list{ display:grid; grid-template-columns: 130px 1fr; row-gap: 12px; column-gap: 16px; }
+  .field-list dt{ font-family:'Space Mono', monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7561; padding-top: 2px; }
+  .field-list dd{ margin:0; font-size: 16px; font-weight: 600; }
+  .field-list dd.mono{ font-family:'Space Mono', monospace; font-weight: 400; font-size: 14px; }
+  .field-list dd.muted{ color: #8a9480; font-size: 13px; }
+  .errlist{ margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+
+  /* --- Generate pane --- */
+  .gen-form{ display:flex; flex-direction:column; gap: 16px; margin-bottom: 8px; }
+  .gen-row-2{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .preview-box{
+    background: #10231a; color: #d7e6da; border: 1px solid #2c4438;
+    padding: 22px; margin-bottom: 22px; position:relative; overflow:hidden;
+  }
+  .preview-label{ font-family:'Space Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #7fae8f; margin-bottom: 14px; }
+  .preview-nik{ font-family:'Space Mono', monospace; font-size: 24px; letter-spacing: 0.14em; display:flex; flex-wrap:wrap; gap: 2px; margin-bottom: 12px; }
+  .preview-nik .grp{ display:inline-flex; }
+  .preview-nik .filled.g-wil{ color: #8fd6a8; }
+  .preview-nik .filled.g-tgl{ color: #e8a988; }
+  .preview-nik .filled.g-urut{ color: #9db8e8; }
+  .preview-nik .empty{ color: #3d5548; }
+  .preview-note{ font-family:'Space Mono', monospace; font-size: 11.5px; color: #7fae8f; line-height: 1.6; display:flex; gap: 8px; }
+  .preview-note .ic{ flex-shrink:0; }
+
+  .gen-output{ margin-top: 4px; background: #fff; border: 1px solid var(--line); padding: 20px; display:none; }
+  .gen-output.show{ display:block; }
+  .gen-nik-final{ font-family:'Space Mono', monospace; font-size: 22px; letter-spacing: 0.06em; word-break: break-all; margin-bottom: 6px; cursor:pointer; }
+  .copy-hint{ font-family:'Space Mono', monospace; font-size: 10.5px; color: #8a9480; margin-bottom: 14px; }
+
+  .disclaimer-box{
+    margin-top: 16px; font-size: 12.5px; color: #6b7561; line-height: 1.6;
+    border-left: 3px solid var(--stamp-dim); padding: 8px 14px; background: var(--paper);
+  }
+
+  /* --- Guide pane --- */
+  .guide-block{ margin-bottom: 26px; }
+  .guide-block h3{ font-size: 17px; margin: 0 0 6px; display:flex; align-items:baseline; gap: 10px; }
+  .guide-block h3 .tag{ font-family:'Space Mono', monospace; font-size: 11px; padding: 2px 8px; color: #fff; letter-spacing: 0.05em; }
+  .guide-block.wil h3 .tag{ background: var(--wil); }
+  .guide-block.tgl h3 .tag{ background: var(--tgl); }
+  .guide-block.urut h3 .tag{ background: var(--urut); }
+  .guide-block p{ font-size: 14.5px; line-height: 1.65; margin: 0; color: #35402f; }
+
+  .example-strip{ display:flex; gap: 3px; font-family:'Space Mono', monospace; font-size: 15px; margin: 26px 0 4px; justify-content:center; }
+  .example-strip span{ padding: 6px 3px; text-align:center; flex: 1; max-width: 32px; }
+  .example-strip span.g-wil{ background: var(--wil); color:#fff; }
+  .example-strip span.g-tgl{ background: var(--tgl); color:#fff; }
+  .example-strip span.g-urut{ background: var(--urut); color:#fff; }
+  .example-caption{ text-align:center; font-family:'Space Mono', monospace; font-size: 10.5px; color: #8a9480; margin-bottom: 24px; letter-spacing: 0.05em; }
+
+  footer{ padding: 16px 32px 26px; border-top: 1px dashed var(--line); font-size: 12.5px; color: #5c6653; line-height: 1.6; }
+  footer strong{ color: var(--ink); }
+
+  .stampmark{
+    position:absolute; top: 22px; right: 28px; width: 58px; height: 58px;
+    border: 2px solid var(--stamp-dim); border-radius: 50%; display:flex; align-items:center; justify-content:center;
+    transform: rotate(-8deg); opacity: 0.5; font-family:'Space Mono', monospace; font-size: 8.5px;
+    letter-spacing: 0.05em; text-align:center; color: var(--stamp-dim); line-height: 1.3; pointer-events:none;
+  }
+
+  @media (max-width: 480px){
+    header, main, footer{ padding-left: 20px; padding-right: 20px; }
+    .field-list{ grid-template-columns: 1fr; row-gap: 4px; }
+    .field-list dt{ padding-top: 10px; }
+    .stampmark{ display:none; }
+    .gen-row-2{ grid-template-columns: 1fr; }
+    .preview-nik{ font-size: 16px; }
+    nav.tabs button{ font-size: 10px; padding: 12px 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header>
+    <div class="stampmark">HANYA<br>CONTOH<br>&mdash; BUKAN<br>DATA ASLI</div>
+    <p class="eyebrow">Struktur Nomor · Edukasi &amp; Testing</p>
+    <h1>Baca &amp; Generate NIK</h1>
+    <p class="sub">Membedah susunan 16 digit Nomor Induk Kependudukan: kode wilayah, tanggal lahir, jenis kelamin, dan nomor urut. Data wilayah diambil live dari dataset terbuka Kemendagri/BPS — tidak ada NIK yang dikirim/disimpan ke server manapun.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-pane="baca">Baca</button>
+    <button class="tab-btn" data-pane="generate">Generate</button>
+    <button class="tab-btn" data-pane="panduan">Panduan</button>
+  </nav>
+
+  <main>
+    <!-- BACA -->
+    <section class="pane active" id="pane-baca">
+      <label for="nik">Masukkan 16 digit NIK</label>
+      <div class="input-row">
+        <input type="text" id="nik" placeholder="3271xxxxxxxxxxxx" maxlength="16" inputmode="numeric" autocomplete="off">
+        <button class="action" id="checkBtn">Periksa</button>
+      </div>
+      <div class="digit-track">
+        <span class="g-wil">P</span><span class="g-wil">P</span>
+        <span class="g-wil">K</span><span class="g-wil">K</span>
+        <span class="g-wil">C</span><span class="g-wil">C</span>
+        <span class="g-tgl">D</span><span class="g-tgl">D</span>
+        <span class="g-tgl">M</span><span class="g-tgl">M</span>
+        <span class="g-tgl">Y</span><span class="g-tgl">Y</span>
+        <span class="g-urut">S</span><span class="g-urut">S</span><span class="g-urut">S</span><span class="g-urut">S</span>
+      </div>
+
+      <div class="result" id="result">
+        <div class="verdict" id="verdict"></div>
+        <dl class="field-list" id="fieldList"></dl>
+      </div>
+    </section>
+
+    <!-- GENERATE -->
+    <section class="pane" id="pane-generate">
+      <div class="preview-box">
+        <div class="preview-label">✧ Pratinjau NIK</div>
+        <div class="preview-nik" id="previewNik"></div>
+        <div class="preview-note"><span class="ic">ⓘ</span><span>4 digit terakhir (XXXX) adalah nomor urut acak murni — tidak bisa ditebak dari data lain apa pun.</span></div>
+      </div>
+
+      <div class="gen-form">
+        <div>
+          <label for="selProv">Provinsi</label>
+          <select id="selProv"><option value="">Pilih Provinsi</option></select>
+        </div>
+        <div>
+          <label for="selKab">Kabupaten/Kota</label>
+          <select id="selKab" disabled><option value="">Pilih Provinsi dahulu</option></select>
+        </div>
+        <div>
+          <label for="selKec">Kecamatan</label>
+          <select id="selKec" disabled><option value="">Pilih Kabupaten/Kota dahulu</option></select>
+        </div>
+        <div class="gen-row-2">
+          <div>
+            <label for="selGender">Jenis Kelamin</label>
+            <select id="selGender">
+              <option value="">Pilih Jenis Kelamin</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+          <div>
+            <label for="selDob">Tanggal Lahir</label>
+            <input type="date" id="selDob">
+          </div>
+        </div>
+      </div>
+
+      <button class="action" id="genBtn" style="width:100%; padding: 12px 0;" disabled>Buat NIK</button>
+
+      <div class="gen-output" id="genOutput">
+        <div class="gen-nik-final" id="genNikFinal"></div>
+        <div class="copy-hint">klik angka di atas untuk menyalin</div>
+      </div>
+
+      <div class="disclaimer-box">
+        NIK dirakit dari kode wilayah resmi + tanggal lahir yang kamu pilih — jadi valid secara <strong>format</strong>. Tapi 4 digit nomor urut terakhir selalu acak murni, sehingga <strong>tidak dijamin cocok dengan NIK siapa pun yang benar-benar terdaftar</strong>. Cocok untuk isi form uji coba / data dummy, bukan untuk keperluan administratif.
+      </div>
+    </section>
+
+    <!-- PANDUAN -->
+    <section class="pane" id="pane-panduan">
+      <div class="example-strip">
+        <span class="g-wil">3</span><span class="g-wil">2</span>
+        <span class="g-wil">7</span><span class="g-wil">1</span>
+        <span class="g-wil">0</span><span class="g-wil">5</span>
+        <span class="g-tgl">4</span><span class="g-tgl">5</span>
+        <span class="g-tgl">0</span><span class="g-tgl">6</span>
+        <span class="g-tgl">9</span><span class="g-tgl">8</span>
+        <span class="g-urut">0</span><span class="g-urut">0</span><span class="g-urut">0</span><span class="g-urut">3</span>
+      </div>
+      <p class="example-caption">CONTOH ILUSTRASI &mdash; BUKAN NIK ASLI SIAPA PUN</p>
+
+      <div class="guide-block wil">
+        <h3><span class="tag">DIGIT 1&ndash;6</span> Kode Wilayah</h3>
+        <p>Dua digit pertama adalah kode provinsi, dua berikutnya kode kabupaten/kota, dua terakhir kode kecamatan tempat KTP pertama kali diterbitkan &mdash; bukan selalu tempat tinggal saat ini.</p>
+      </div>
+      <div class="guide-block tgl">
+        <h3><span class="tag">DIGIT 7&ndash;12</span> Tanggal Lahir</h3>
+        <p>Enam digit ini adalah tanggal, bulan, dan tahun lahir (format DDMMYY). Untuk perempuan, angka tanggal ditambah 40 &mdash; jadi tanggal lahir 5 ditulis sebagai 45.</p>
+      </div>
+      <div class="guide-block urut">
+        <h3><span class="tag">DIGIT 13&ndash;16</span> Nomor Urut</h3>
+        <p>Empat digit terakhir adalah nomor urut registrasi Dukcapil untuk membedakan orang dengan kode wilayah dan tanggal lahir yang sama. Tidak mengikuti pola yang bisa ditebak.</p>
+      </div>
+      <div class="guide-block">
+        <h3>Yang <em>tidak</em> ada di dalam NIK</h3>
+        <p>Nama, alamat, dan data pribadi lain <strong>tidak pernah ter-encode</strong> di angkanya sendiri. Satu-satunya cara sah mencocokkan NIK dengan identitas aslinya adalah lewat sistem resmi Dukcapil dengan kewenangan yang berlaku.</p>
+      </div>
+      <div class="guide-block">
+        <h3>Kenapa kecamatan kadang tidak kebaca</h3>
+        <p>NIK menyimpan kode kecamatan dalam 2 digit (standar lama), sedangkan dataset kecamatan terbuka yang tersedia publik memakai 3 digit (standar BPS). Alat ini mencocokkan keduanya dengan pola umum (kode NIK × 10) yang akurat untuk kecamatan lama, tapi kecamatan hasil pemekaran baru mungkin belum cocok &mdash; dalam kasus itu, kodenya ditampilkan apa adanya daripada menebak nama yang belum tentu benar.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>Catatan:</strong> Semua pemrosesan berjalan di browser. Data wilayah diambil live dari dataset terbuka <em>api-wilayah-indonesia</em> (berbasis data BPS/Kemendagri) &mdash; butuh koneksi internet aktif untuk kab/kota &amp; kecamatan.
+  </footer>
+</div>
+
+<script>
+async function fetchProvinces(){
+
+    if(cache.provinces)
+        return cache.provinces;
+
+    const res = await fetch(`${API_BASE}/provinsi.json`);
+
+    if(!res.ok)
+        throw new Error("Gagal mengambil provinsi");
+
+    cache.provinces = await res.json();
+
+    return cache.provinces;
+}
+const monthNames = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const API_BASE = "https://raw.githubusercontent.com/cahyadsn/wilayah_ref/master/data";
+
+const cache = {
+    provinces: null,
+    regencies: {},
+    districts: {}
+};
+
+/* simple in-memory cache so we don't re-fetch */
+
+async function fetchRegencies(provId){
+
+    if(cache.regencies[provId])
+        return cache.regencies[provId];
+
+    const res = await fetch(`${API_BASE}/kabupaten/${provId}.json`);
+
+    if(!res.ok)
+        throw new Error("Gagal mengambil kabupaten");
+
+    const data = await res.json();
+
+    cache.regencies[provId] = data;
+
+    return data;
+}
+
+async function fetchDistricts(regId){
+
+    if(cache.districts[regId])
+        return cache.districts[regId];
+
+    const res = await fetch(`${API_BASE}/kecamatan/${regId}.json`);
+
+    if(!res.ok)
+        throw new Error("Gagal mengambil kecamatan");
+
+    const data = await res.json();
+
+    cache.districts[regId] = data;
+
+    return data;
+}
+function titleCase(s){
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-' + btn.dataset.pane).classList.add('active');
+  });
+});
+
+/* ---------- Baca / Validasi ---------- */
+function daysInMonth(month, year){ return new Date(year, month, 0).getDate(); }
+
+async function checkNik(){
+  const raw = document.getElementById('nik').value.trim();
+  const resultBox = document.getElementById('result');
+  const verdictBox = document.getElementById('verdict');
+  const fieldList = document.getElementById('fieldList');
+  const errors = [];
+
+  if(!/^\d+$/.test(raw)) errors.push("NIK hanya boleh berisi angka.");
+  if(raw.length !== 16) errors.push(`Panjang NIK harus 16 digit (yang dimasukkan: ${raw.length} digit).`);
+
+  resultBox.classList.add('show');
+
+  if(errors.length){
+    verdictBox.className = "verdict err";
+    verdictBox.textContent = "✕ FORMAT TIDAK VALID";
+    fieldList.innerHTML = `<dt>Masalah</dt><dd><ul class="errlist">${errors.map(e=>`<li>${e}</li>`).join('')}</ul></dd>`;
+    return;
+  }
+
+  const provCode = raw.slice(0,2);
+  const cityCode = raw.slice(2,4);
+  const kecCode = raw.slice(4,6);
+  let dobDay = parseInt(raw.slice(6,8), 10);
+  const dobMonth = parseInt(raw.slice(8,10), 10);
+  const dobYear2 = parseInt(raw.slice(10,12), 10);
+  const seq = raw.slice(12,16);
+
+  let gender = "Laki-laki";
+  if(dobDay > 40){ gender = "Perempuan"; dobDay -= 40; }
+
+  const structErrors = [];
+  let provName = "";
+
+try{
+
+    const provs = await fetchProvinces();
+
+    const p = provs.find(x=>x.kode===provCode);
+
+    if(p) provName = titleCase(p.nama);
+
+}catch(e){}
+  if(!provName) structErrors.push(`Kode provinsi "${provCode}" tidak dikenali dalam daftar kode wilayah resmi.`);
+  if(dobMonth < 1 || dobMonth > 12) structErrors.push(`Kode bulan lahir "${raw.slice(8,10)}" tidak valid (harus 01–12).`);
+  if(dobDay < 1 || (dobMonth >= 1 && dobMonth <= 12 && dobDay > daysInMonth(dobMonth, fullYear))) structErrors.push(`Kode tanggal lahir "${raw.slice(6,8)}" tidak valid untuk bulan tersebut.`);
+  if(seq === "0000") structErrors.push(`Nomor urut "0000" tidak lazim dipakai (biasanya dimulai dari 0001).`);
+
+  const currentYear2 = new Date().getFullYear() % 100;
+  const century = dobYear2 <= currentYear2 ? 2000 : 1900;
+  const fullYear = century + dobYear2;
+
+  if(structErrors.length){
+    verdictBox.className = "verdict err";
+    verdictBox.textContent = "△ FORMAT TERBACA, TAPI ADA KEJANGGALAN";
+    fieldList.innerHTML = `<dt>Kejanggalan</dt><dd><ul class="errlist">${structErrors.map(e=>`<li>${e}</li>`).join('')}</ul></dd>`;
+  } else {
+    verdictBox.className = "verdict loading";
+    verdictBox.textContent = "⟳ MEMUAT DATA WILAYAH…";
+    fieldList.innerHTML = "";
+  }
+
+  const rows = [
+    ["Kode Provinsi", `${provCode} ${provName ? "— " + provName : "(tidak dikenali)"}`],
+    ["Kode Kab/Kota", `${cityCode} — memuat…`],
+    ["Kode Kecamatan", `${kecCode} — memuat…`],
+    ["Perkiraan Lahir", `${String(dobDay).padStart(2,'0')} ${monthNames[dobMonth] || '?'} ${fullYear}`],
+    ["Jenis Kelamin", gender + " (dari digit tanggal +40)"],
+    ["Nomor Urut", seq]
+  ];
+  fieldList.innerHTML += rows.map(([k,v]) => `<dt>${k}</dt><dd class="mono" id="row-${k.replace(/\W/g,'')}">${v}</dd>`).join('');
+
+  if(!structErrors.length){
+    try{
+      const regencies = await fetchRegencies(provCode);
+      const regMatch = regencies.find(r => r.kode === provCode + cityCode);
+      const kabCell = document.getElementById('row-KodeKabKota');
+      if(regMatch){
+        kabCell.textContent = `${cityCode} — ${titleCase(regMatch.nama)}`;
+      } else {
+        kabCell.textContent = `${cityCode} (tidak ditemukan di dataset terbuka)`;
+      }
+
+      const kecCell = document.getElementById('row-KodeKecamatan');
+      if(regMatch){
+        const districts = await fetchDistricts(regMatch.kode);
+
+const kecMatch = districts.find(d => d.kode.slice(4,6) === kecCode);
+        if(kecMatch){
+          kecCell.textContent = `${kecCode} — ${titleCase(kecMatch.nama)}`;
+        } else {
+          kecCell.textContent = `${kecCode} (kemungkinan kecamatan pemekaran baru — tidak ditemukan padanan pasti)`;
+        }
+      } else {
+        kecCell.textContent = `${kecCode} (butuh nama kab/kota dahulu)`;
+      }
+
+      verdictBox.className = "verdict ok";
+      verdictBox.textContent = "✓ STRUKTUR VALID";
+    }catch(err){
+      const kabCell = document.getElementById('row-KodeKabKota');
+      const kecCell = document.getElementById('row-KodeKecamatan');
+      if(kabCell) kabCell.textContent = `${cityCode} (gagal memuat — cek koneksi internet)`;
+      if(kecCell) kecCell.textContent = `${kecCode} (gagal memuat — cek koneksi internet)`;
+      verdictBox.className = "verdict ok";
+      verdictBox.textContent = "✓ STRUKTUR VALID (nama wilayah gagal dimuat)";
+    }
+  }
+}
+
+document.getElementById('checkBtn').addEventListener('click', checkNik);
+document.getElementById('nik').addEventListener('keydown', e => { if(e.key === 'Enter') checkNik(); });
+document.getElementById('nik').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g,''); });
+
+/* ---------- Generate (cascading + preview) ---------- */
+const selProv = document.getElementById('selProv');
+const selKab = document.getElementById('selKab');
+const selKec = document.getElementById('selKec');
+const selGender = document.getElementById('selGender');
+const selDob = document.getElementById('selDob');
+const genBtn = document.getElementById('genBtn');
+const previewNik = document.getElementById('previewNik');
+
+(async()=>{
+
+    const data = await fetchProvinces();
+
+    data.forEach(p=>{
+
+        const opt=document.createElement("option");
+
+        opt.value=p.kode;
+        opt.textContent=titleCase(p.nama);
+
+        selProv.appendChild(opt);
+
+    });
+
+})();
+
+function pad(n, len){ return String(n).padStart(len, '0'); }
+
+function currentGroups(){
+  const prov = selProv.value || null;
+  const kab = selKab.value || null; // 2-digit suffix
+  const kec = selKec.value || null; // 2-digit NIK-style code
+  let dobGroup = null;
+  if(selDob.value){
+    const d = new Date(selDob.value + 'T00:00:00');
+    let day = d.getDate();
+    if(selGender.value === 'P') day += 40;
+    dobGroup = pad(day,2) + pad(d.getMonth()+1,2) + pad(d.getFullYear()%100,2);
+  }
+  return { prov, kab, kec, dobGroup };
+}
+
+function renderPreview(){
+  const { prov, kab, kec, dobGroup } = currentGroups();
+  const wilFilled = (prov ? prov : '**') + (kab ? kab : '**') + (kec ? kec : '**');
+  const tglFilled = dobGroup ? dobGroup : '******';
+
+  const wilHtml = wilFilled.split(/(?<=^..)|(?<=^....)/).map((chunk, i) => {
+    const isPlaceholder = chunk.includes('*');
+    return `<span class="grp ${isPlaceholder ? 'empty' : 'filled g-wil'}">${chunk}</span>`;
+  }).join('&nbsp;');
+
+  const tglHtml = `<span class="grp ${dobGroup ? 'filled g-tgl' : 'empty'}">${tglFilled}</span>`;
+  const seqHtml = `<span class="grp empty">XXXX</span>`;
+
+  previewNik.innerHTML = `${wilHtml}&nbsp;${tglHtml}&nbsp;${seqHtml}`;
+
+  genBtn.disabled = !(prov && kab && kec && selGender.value && selDob.value);
+}
+renderPreview();
+
+selProv.addEventListener('change', async () => {
+  selKab.innerHTML = '<option value="">Memuat…</option>';
+  selKab.disabled = true;
+  selKec.innerHTML = '<option value="">Pilih Kabupaten/Kota dahulu</option>';
+  selKec.disabled = true;
+  renderPreview();
+
+  if(!selProv.value){
+    selKab.innerHTML = '<option value="">Pilih Provinsi dahulu</option>';
+    return;
+  }
+  try{
+    const regencies = await fetchRegencies(selProv.value);
+    selKab.innerHTML = '<option value="">Pilih Kabupaten/Kota</option>';
+
+regencies.forEach(r => {
+    const opt = document.createElement("option");
+
+    opt.value = r.kode.slice(2);
+    opt.dataset.fullId = r.kode;
+    opt.textContent = titleCase(r.nama);
+
+    selKab.appendChild(opt);
+});
+    selKab.disabled = false;
+  }catch(err){
+    selKab.innerHTML = '<option value="">Gagal memuat — cek koneksi</option>';
+  }
+  renderPreview();
+});
+
+selKab.addEventListener('change', async () => {
+  selKec.innerHTML = '<option value="">Memuat…</option>';
+  selKec.disabled = true;
+  renderPreview();
+
+  if(!selKab.value){
+    selKec.innerHTML = '<option value="">Pilih Kabupaten/Kota dahulu</option>';
+    return;
+  }
+  const fullRegId = selProv.value + selKab.value;
+  try{
+    const districts = await fetchDistricts(fullRegId);
+    // districts have 3-digit suffix; keep only those that are clean multiples of 10 (map to 2-digit NIK code)
+    const options = districts.map(d => ({
+    kecCode: d.kode.slice(4,6),
+    name: titleCase(d.nama)
+}));
+    if(options.length){
+      selKec.innerHTML = '<option value="">Pilih Kecamatan</option>' +
+        options.map(o => `<option value="${o.kecCode}">${o.name}</option>`).join('');
+    } else {
+      selKec.innerHTML = '<option value="">Tidak ada padanan kecamatan lama untuk kab/kota ini</option>';
+    }
+    selKec.disabled = false;
+  }catch(err){
+    selKec.innerHTML = '<option value="">Gagal memuat — cek koneksi</option>';
+  }
+  renderPreview();
+});
+
+selKec.addEventListener('change', renderPreview);
+selGender.addEventListener('change', renderPreview);
+selDob.addEventListener('change', renderPreview);
+
+genBtn.addEventListener('click', () => {
+  const { prov, kab, kec, dobGroup } = currentGroups();
+  if(!(prov && kab && kec && dobGroup)) return;
+  cons
+  const nik = prov + kab + kec + dobGroup + seq;
+
+  const genOutput = document.getElementById('genOutput');
+  const genNikFinal = document.getElementById('genNikFinal');
+  genOutput.classList.add('show');
+  genNikFinal.innerHTML =
+    `<span style="color:var(--wil)">${nik.slice(0,6)}</span>` +
+    `<span style="color:var(--tgl)">${nik.slice(6,12)}</span>` +
+    `<span style="color:var(--urut)">${nik.slice(12,16)}</span>`;
+  genNikFinal.onclick = () => {
+    navigator.clipboard.writeText(nik)
+.then(() => alert("NIK berhasil disalin"))
+.catch(() => alert("Gagal menyalin"));
+    genNikFinal.style.opacity = '0.5';
+    setTimeout(()=> genNikFinal.style.opacity = '1', 150);
+  };
+});
+</script>
+
+</body>
+</html>
